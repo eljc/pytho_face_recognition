@@ -6,7 +6,7 @@ Programming Language :: Python
 Compatible Python 3.10
 
 
-- Need configure Docker for run
+- Need configure Docker run
 
 ## Features
 
