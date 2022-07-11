@@ -4,7 +4,7 @@ import json
 import face_recognition
 import os
 
-image = face_recognition.load_image_file("static/images/*.jpg")
+image = face_recognition.load_image_file("static/images/Elder.jpg")
 face_encoding = face_recognition.face_encodings(image)[0]
 
 eye_cascade = cv2.CascadeClassifier(cv2.data.haarcascades+'haarcascade_eye_tree_eyeglasses.xml')
@@ -17,6 +17,7 @@ print('Encoding Complete')
 
 def predict(test_image, threshold, uploadWidth, uploadHeight):
     texto_imagem = ''
+    piscou = False
     nomeImagens = ['Elder', 'Aline']
 
     imgS = cv2.resize(test_image, (0, 0), None, 0.25, 0.25)
@@ -41,14 +42,27 @@ def predict(test_image, threshold, uploadWidth, uploadHeight):
 
         if matches[matchIndex]:
             name = nomeImagens[matchIndex].upper()
-            # print(name)
             top, right, bottom, left = faceLoc
-            #cv2.rectangle(test_image, (x1, y1), (x2, y2), (0, 255, 0), 2)
             texto_imagem = name
             print('Reconhecido: ', name)
-
+            
             eyes = eye_cascade.detectMultiScale(test_image, scaleFactor=1.2, minNeighbors=4)
+            print('olhos: ',len(eyes))
+            if(len(eyes)==2 and piscou==False):
+                texto_imagem = 'Pisque por favor'
 
+            if(len(eyes)==0 and piscou==False):
+                print('piscou')
+                piscou = True
+                texto_imagem = 'Presenca registrada'
+
+            elif piscou :
+                 texto_imagem = 'Presenca registrada'
+
+        else:
+            texto_imagem = 'Face não reconhecida'        
+
+        top, right, bottom, left = top*4, right*4, bottom*4, left*4
 
         # Add some metadata to the output
         item = Object()

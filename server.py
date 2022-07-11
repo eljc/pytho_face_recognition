@@ -4,25 +4,69 @@ import os
 import numpy
 import cv2
 from PIL import Image
-from flask import Flask, request, Response
+from flask import Flask, request, Response, render_template, flash, redirect, url_for
+from werkzeug.utils import secure_filename
 import ssl
 
 app = Flask(__name__)
+
+UPLOAD_FOLDER = 'static/images/'
+
+app.secret_key = "secret key"
+app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
+app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024
+
+ALLOWED_EXTENSIONS = set(['png', 'jpg', 'jpeg', 'gif'])
 
 
 # for CORS
 @app.after_request
 def after_request(response):
     response.headers.add('Access-Control-Allow-Origin', '*')
-    response.headers.add('Access-Control-Allow-Headers', 'Content-Type,Authorization')
-    response.headers.add('Access-Control-Allow-Methods', 'GET,POST')  # Put any other methods you need here
+    response.headers.add('Access-Control-Allow-Headers',
+                         'Content-Type,Authorization')
+    # Put any other methods you need here
+    response.headers.add('Access-Control-Allow-Methods', 'GET,POST')
     return response
 
 
 @app.route('/')
 def index():
-    return Response('Face Recognition')
+    return render_template('index.html')
 
+def allowed_file(filename):
+    return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
+    
+@app.route('/', methods=['POST'])
+def upload_file():
+
+    nome = request.form['nome']
+    print(nome)
+
+    if 'file' not in request.files:
+        flash('No file part')
+        return redirect(request.url)
+    file = request.files['file']
+    if file.filename == '':
+        flash('Nenhuma imagem selecionada')
+        return redirect(request.url)
+    if file and allowed_file(file.filename):
+        filename = secure_filename(file.filename)
+        filename = nome+'.jpg'
+        #file.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
+        file.save(os.path.join(app.config['UPLOAD_FOLDER'], nome+'.jpg'))        
+        # print('upload_image filename: ' + filename)
+        flash('Imagem enviada com sucesso')
+        print('filename', filename)
+        print(app.config['UPLOAD_FOLDER'])
+        return render_template('index.html', filename=filename)
+    else:
+        flash('Imagens válidas: - png, jpg, jpeg, gif')
+        return redirect(request.url)
+
+@app.route('/display/<filename>', methods=['GET'])
+def display_image(filename):
+    return redirect(url_for('static', filename='images/' + filename), code=301)
 
 @app.route('/train')
 def train():
@@ -36,9 +80,10 @@ def train():
         return e
 
 
-@app.route('/local')
+@app.route('/reconhecer')
 def local():
-    return Response(open('./static/local.html').read(), mimetype="text/html")
+    return render_template('local.html')
+    #return Response(open('./static/templates/local.html').read(), mimetype="text/html")
 
 
 @app.route('/video')
@@ -97,9 +142,10 @@ def image():
 
 if __name__ == '__main__':
     # without SSL
-    #app.run(debug=True, host='0.0.0.0', threaded=True)
+   # app.run(debug=True, host='0.0.0.0', threaded=True)
 
     #  app.run(debug=True, host='0.0.0.0', ssl_context=('example.com+5.pem', 'example.com+5-key.key'))
-    #app.run(debug=True, host='0.0.0.0', threaded=True, ssl_context=('ssl/cert.crt', 'ssl/key.key'))
+    # app.run(debug=True, host='0.0.0.0', threaded=True, ssl_context=('ssl/cert.crt', 'ssl/key.key'))
 
-    app.run(debug=True, host='0.0.0.0', ssl_context='adhoc')
+    # app.run(debug=True, host='0.0.0.0', ssl_context='adhoc')
+    app.run(ssl_context=("cert.pem", "key.pem"))
